@@ -224,6 +224,7 @@ class RTMPoseEstimator:
                 # Clip coordinates to be non-negative (keypoints can be outside frame bounds)
                 x = max(0.0, float(x))
                 y = max(0.0, float(y))
+                conf = min(1.0, float(conf))  # Clip confidence to [0, 1]
 
                 # Only include keypoints above threshold
                 if conf >= self.conf_threshold:

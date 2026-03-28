@@ -115,7 +115,7 @@ class LatencyProfiler:
 
     def __init__(self, name: str = "default"):
         self.name = name
-        self.stats: Dict[str, LatencyStats] = defaultdict(LatencyStats)
+        self.stats: Dict[str, LatencyStats] = {}
         self._active: Dict[str, float] = {}
         self._lock = threading.Lock()
 
@@ -128,6 +128,8 @@ class LatencyProfiler:
         finally:
             elapsed = (time.perf_counter() - start) * 1000  # Convert to ms
             with self._lock:
+                if operation not in self.stats:
+                    self.stats[operation] = LatencyStats(name=operation)
                 self.stats[operation].add(elapsed)
 
     def get_stats(self, operation: str) -> LatencyStats:
