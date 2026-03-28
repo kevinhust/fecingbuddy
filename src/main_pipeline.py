@@ -25,6 +25,7 @@ from tqdm import tqdm
 from src.utils.logging import logger
 from src.utils.schemas import FeatureMatrix, FrameData
 from src.utils.profiling import PipelineMonitor, get_system_info
+from src.utils.visualization import draw_frame_overlay, draw_info_overlay
 from src.perception.pipeline import PerceptionPipeline
 from src.recognition.feature_extractor import FeatureExtractor
 
@@ -208,6 +209,18 @@ def process_video(
     all_frame_ids: List[int] = []
     all_audio_flags: List[np.ndarray] = []
 
+    # Video writer for visualization output
+    video_writer = None
+    if enable_visualization:
+        cap_for_viz = cv2.VideoCapture(video_path)
+        frame_width_viz = int(cap_for_viz.get(cv2.CAP_PROP_FRAME_WIDTH))
+        frame_height_viz = int(cap_for_viz.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+        viz_output_path = f"{output_path}_visualization.mp4"
+        video_writer = cv2.VideoWriter(viz_output_path, fourcc, fps, (frame_width_viz, frame_height_viz))
+        logger.info(f"Visualization output: {viz_output_path}")
+        cap_for_viz.release()
+
     logger.info("Processing video...")
     start_time = time.time()
 
@@ -265,15 +278,27 @@ def process_video(
                 np.array([1.0 if frame_data.audio_event else 0.0, 0.0])
             )
 
-            if enable_visualization:
-                # TODO: Implement visualization (P1)
-                pass
+            if enable_visualization and video_writer is not None:
+                # Draw skeleton overlay on frame
+                vis_frame = frame.copy()
+                vis_frame = draw_frame_overlay(vis_frame, frame_data.poses, min_conf=0.3)
+                vis_frame = draw_info_overlay(
+                    vis_frame,
+                    frame_id=frame_id,
+                    fps=fps,
+                    n_fencers=len(frame_data.poses),
+                )
+                video_writer.write(vis_frame)
 
             processed_frames += 1
             frame_id += 1
             pbar.update(1)
 
+    # Release resources
     cap.release()
+    if video_writer is not None:
+        video_writer.release()
+        logger.info(f"Visualization saved to {viz_output_path}")
 
     elapsed_time = time.time() - start_time
     logger.info(

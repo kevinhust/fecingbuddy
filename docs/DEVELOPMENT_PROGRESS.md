@@ -265,7 +265,7 @@ Video/Audio → TimestampedBuffer → RTMPose → Norfair Dual Tracker → Calib
 | Task | Status | Description |
 |------|--------|-------------|
 | 4.2.1 | ✅ | `save_features()` - .npy + .json metadata |
-| 4.2.2 | [ ] | `--visualize` flag (P1) |
+| 4.2.2 | ✅ | `--visualize` flag for skeleton overlay (P1) |
 
 ### 4.3 Error Handling & Graceful Degradation (P0)
 | Task | Status | Description |
@@ -342,36 +342,39 @@ Video/Audio → TimestampedBuffer → RTMPose → Norfair Dual Tracker → Calib
 ### 7.1 Feature Visualization (P1)
 | Task | Status | Description |
 |------|--------|-------------|
-| 7.1.1 | [ ] | `--visualize` flag for skeleton overlay |
+| 7.1.1 | ✅ | `--visualize` flag for skeleton overlay (implemented in Phase 4) |
 | 7.1.2 | [ ] | Feature matrix heatmap export |
 
 ---
 
 ## Progress Summary
 
-### Overall: Phase 6 Complete ✅
+### Overall: Phase 4 Mostly Complete ✅
 
 | Phase | Tasks | Completed | In Progress | Pending |
 |-------|-------|----------|------------|---------|
 | Phase 1 | 11 | 11 | 0 | 0 |
 | Phase 2 | 14 | 14 | 0 | 0 |
 | Phase 3 | 18 | 18 | 0 | 0 |
-| Phase 4 | 9 | 7 | 0 | 2 |
+| Phase 4 | 9 | 8 | 0 | 1 |
 | Phase 5 | 10 | 7 | 0 | 3 (E2E + Performance) |
 | Phase 6 | 5 | 5 | 0 | 0 |
-| Phase 7 | 2 | 0 | 0 | 2 |
-| **Total** | **69** | **62** | **0** | **9** |
+| Phase 7 | 2 | 1 | 0 | 1 |
+| **Total** | **69** | **64** | **0** | **7** |
 
 ### Completed Tasks
 - ✅ Phase 1: Config, Logging, Pydantic Schemas, Buffer, Constants, Types
 - ✅ Phase 2: RTMPose, Tracker, Calibrator, Audio Detection, Pipeline Integration
 - ✅ Phase 3: Feature Math Engine, All 101 Feature Dimensions, Canonicalization, FeatureExtractor
-- ✅ Phase 4: Main Pipeline Integration (CLI, video processing, output persistence)
+- ✅ Phase 4: Main Pipeline (CLI, video processing, output persistence, --visualize)
 - ✅ Phase 5: Unit tests (288 total tests passing), Integration tests
 - ✅ Phase 6: Performance profiling, RTMPose mode comparison (lightweight 8x faster), PipelineMonitor
+- ✅ Phase 7: Skeleton overlay visualization (--visualize flag)
 
 ### Current Focus
-- Phase 4 remaining: Visualization (P1), Health monitoring
+- Phase 4 remaining: Pipeline health monitoring
+- Phase 5: E2E tests (require sample video data)
+- Phase 7 remaining: Feature matrix heatmap export
 - Phase 5 remaining: E2E tests (require sample video data)
 - Phase 6 complete: Lightweight mode is default (158ms/frame), profiling utilities ready
 - Phase 7 future: Visualization tools for skeleton overlay and feature heatmaps
@@ -393,4 +396,5 @@ Video/Audio → TimestampedBuffer → RTMPose → Norfair Dual Tracker → Calib
 | 2026-03-27 | 4 | All | Completed Main Pipeline (src/main_pipeline.py, CLI, tqdm, output persistence) |
 | 2026-03-27 | 5 | All | Completed Unit & Integration Tests (288 tests passing) |
 | 2026-03-27 | 6 | All | Completed Performance Profiling Utilities (src/utils/profiling.py, PipelineMonitor)
-| 2026-03-27 | 6 | 6.1.2 | Phase 6 Complete: RTMPose lightweight mode 8x faster (158ms vs 1214ms), set as default | |
+| 2026-03-27 | 6 | 6.1.2 | Phase 6 Complete: RTMPose lightweight mode 8x faster (158ms vs 1214ms), set as default |
+| 2026-03-28 | 4 | 4.2.2 | Implemented `--visualize` flag: skeleton overlay, bbox, fencer ID, info bar |
