@@ -62,7 +62,7 @@ class RTMPoseEstimator:
 
     Args:
         mode: Model mode - 'lightweight', 'balanced', or 'performance'
-        device: Device to run inference on - 'cpu' or 'cuda'
+        device: Device to run inference on - 'cpu', 'cuda', or 'mps' (Apple Silicon)
         conf_threshold: Minimum confidence for keypoint detection (default 0.3)
 
     Example:
@@ -83,7 +83,7 @@ class RTMPoseEstimator:
 
         Args:
             mode: Model complexity - 'lightweight' (fastest), 'balanced', 'performance' (most accurate)
-            device: Inference device - 'cpu' or 'cuda'
+            device: Inference device - 'cpu', 'cuda', or 'mps' (Apple Silicon GPU)
             conf_threshold: Minimum confidence threshold for keypoint detection
 
         Raises:
@@ -93,7 +93,7 @@ class RTMPoseEstimator:
         if mode not in valid_modes:
             raise ValueError(f"mode must be one of {valid_modes}, got '{mode}'")
 
-        valid_devices = {"cpu", "cuda"}
+        valid_devices = {"cpu", "cuda", "mps"}
         if device not in valid_devices:
             raise ValueError(f"device must be one of {valid_devices}, got '{device}'")
 
