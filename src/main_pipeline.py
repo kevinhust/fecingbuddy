@@ -47,6 +47,7 @@ try:
     from src.ui.live_viewer import LiveViewer
     from src.ui.hud_overlay import HUDOverlay
     from src.ui.alert_renderer import CoachingAlert
+    from src.coaching import CoachingEngine
     LIVE_IMPORTS_OK = True
 except ImportError as e:
     LIVE_IMPORTS_OK = False
@@ -504,6 +505,10 @@ def process_live(
     # Initialize live viewer
     viewer = LiveViewer()
 
+    # Initialize coaching engine (Phase 2)
+    coaching_engine = CoachingEngine()
+    logger.info("Coaching engine initialized with 10 alert rules")
+
     # Frame buffer for smooth delivery
     frame_buffer = FrameBuffer(max_size=30)
 
@@ -540,8 +545,8 @@ def process_live(
                 frame_width=float(capture.width),
             )
 
-            # Add demo alerts (Phase 2 will add real coaching engine)
-            _add_demo_alerts(viewer, features, frame_data)
+            # Add coaching alerts (Phase 2)
+            _add_coaching_alerts(viewer, features, coaching_engine, frame_data)
 
             # Display frame
             viewer.show(frame, poses=frame_data.poses, frame_data=frame_data)
@@ -558,14 +563,38 @@ def process_live(
     logger.info(f"Live processing complete. Processed {processed_frames} frames.")
 
 
-def _add_demo_alerts(viewer: LiveViewer, features: np.ndarray, frame_data: FrameData) -> None:
+def _add_coaching_alerts(
+    viewer: LiveViewer,
+    features: np.ndarray,
+    coaching_engine: CoachingEngine,
+    frame_data: FrameData,
+) -> None:
     """
-    Add demo coaching alerts based on features.
-    This is a placeholder - Phase 2 will implement real coaching engine.
+    Add coaching alerts based on real-time metrics evaluation.
+
+    Args:
+        viewer: LiveViewer instance to add alerts to
+        features: (2, 101) feature matrix from FeatureExtractor
+        coaching_engine: CoachingEngine instance for alert evaluation
+        frame_data: FrameData from perception pipeline
     """
-    # This is a simple demo - will be replaced with proper coaching engine
-    if len(frame_data.poses) >= 2:
-        # Check if both fencers detected
+    # Only generate alerts if both fencers are tracked
+    if len(frame_data.poses) < 2:
+        return
+
+    try:
+        # Evaluate coaching rules
+        alerts = coaching_engine.evaluate(features)
+
+        # Add alerts to viewer
+        for alert in alerts:
+            viewer.add_alert(
+                message=alert.message,
+                priority=alert.priority,
+                fencer_id=alert.fencer_id,
+            )
+    except Exception as e:
+        # Fallback: just show both fencers tracked
         viewer.add_alert("Both fencers tracked", priority=5)
 
 
