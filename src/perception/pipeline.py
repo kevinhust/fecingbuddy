@@ -46,6 +46,7 @@ class PerceptionPipeline:
         calibrator: HomographyCalibrator instance (optional)
         enable_audio: Whether to enable audio detection
         conf_threshold: Confidence threshold for pose estimation
+        light_mode: If True, use lightweight RTMPose model for M1 Air
 
     Example:
         >>> pipeline = PerceptionPipeline()
@@ -60,14 +61,22 @@ class PerceptionPipeline:
         calibrator: Optional[HomographyCalibrator] = None,
         enable_audio: bool = False,
         conf_threshold: float = 0.3,
+        light_mode: bool = False,
     ) -> None:
-        # Initialize components
-        self.pose_estimator = pose_estimator or RTMPoseEstimator(
-            conf_threshold=conf_threshold
-        )
+        # Initialize RTMPose with light mode if not provided
+        if pose_estimator is None:
+            pose_mode = "lightweight" if light_mode else "lightweight"
+            self.pose_estimator = RTMPoseEstimator(
+                mode=pose_mode,
+                conf_threshold=conf_threshold,
+            )
+        else:
+            self.pose_estimator = pose_estimator
+
         self.tracker = FencerTracker()
         self.calibrator = calibrator
         self.enable_audio = enable_audio
+        self.light_mode = light_mode
 
         # Audio components
         if enable_audio:

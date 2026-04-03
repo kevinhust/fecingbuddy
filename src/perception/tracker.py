@@ -76,11 +76,35 @@ class PoseEmbedder:
             raise ValueError(f"Need at least 12 keypoints, got {keypoint_array.shape[0]}")
 
         # Use first 12 keypoints (FERA subset) for embedding
-        # Shape: (12, 3) -> flatten to (36,)
-        embedding = keypoint_array[:12, :2].flatten()  # x, y only (no conf)
+        # Shape: (12, 3) -> flatten to (24,) - x, y only (no conf)
+        embedding = keypoint_array[:12, :2].flatten()
 
         # Normalize by shoulder width for scale invariance
         shoulder_width = pose.shoulder_width()
+        if shoulder_width > 0:
+            embedding = embedding / shoulder_width
+
+        return embedding.astype(np.float32)
+
+    @staticmethod
+    def compute_embedding_from_keypoints(
+        keypoints: np.ndarray,
+        shoulder_width: float,
+    ) -> np.ndarray:
+        """
+        Vectorized computation of pose embedding from keypoint array.
+
+        Args:
+            keypoints: Array of shape (12, 2) with x, y coordinates
+            shoulder_width: Width for normalization
+
+        Returns:
+            np.ndarray: Normalized embedding vector (24,)
+        """
+        # Flatten x, y coordinates: (12, 2) -> (24,)
+        embedding = keypoints.flatten()
+
+        # Normalize by shoulder width
         if shoulder_width > 0:
             embedding = embedding / shoulder_width
 
@@ -107,6 +131,32 @@ class PoseEmbedder:
 
         return float(dot_product / (norm1 * norm2))
 
+    @staticmethod
+    def cosine_similarity_vectorized(
+        embedding1: np.ndarray,
+        embedding2: np.ndarray,
+    ) -> float:
+        """
+        Vectorized cosine similarity computation.
+
+        Args:
+            embedding1: First embedding vector
+            embedding2: Second embedding vector
+
+        Returns:
+            float: Cosine similarity in range [-1, 1]
+        """
+        # Compute norms using optimized norm
+        norm1 = np.linalg.norm(embedding1)
+        norm2 = np.linalg.norm(embedding2)
+
+        if norm1 == 0 or norm2 == 0:
+            return 0.0
+
+        # Compute dot product and normalize
+        similarity = np.dot(embedding1, embedding2) / (norm1 * norm2)
+        return float(similarity)
+
 
 # =============================================================================
 # Fence Detection Filter
@@ -121,6 +171,8 @@ def fence_detection_distance(
 
     This replaces IOU-based matching with pose embedding similarity,
     which is more robust for fencing poses.
+
+    Optimized to avoid creating temporary FencerPose objects.
     """
     # Get stored keypoints from detection
     if not hasattr(detection, 'data') or detection.data is None:
@@ -139,28 +191,39 @@ def fence_detection_distance(
     if obj_keypoints is None:
         return float('inf')
 
-    # Compute embeddings
+    # Compute embeddings using vectorized approach (no temporary FencerPose objects)
     try:
-        # Create temporary FencerPose objects for embedding
-        det_pose = FencerPose(
-            fencer_id=0,
-            bbox=(0, 0, 1, 1),
-            keypoints=[Keypoint(x=float(k[0]), y=float(k[1]), conf=float(k[2])) for k in det_keypoints]
-        )
-        obj_pose = FencerPose(
-            fencer_id=0,
-            bbox=(0, 0, 1, 1),
-            keypoints=[Keypoint(x=float(k[0]), y=float(k[1]), conf=float(k[2])) for k in obj_keypoints]
-        )
+        # Extract keypoint arrays directly
+        det_kp = np.array(det_keypoints[:12], dtype=np.float32)  # Shape: (12, 3)
+        obj_kp = np.array(obj_keypoints[:12], dtype=np.float32)  # Shape: (12, 3)
+
+        # Compute shoulder width directly from keypoints
+        # Left shoulder index 0, Right shoulder index 1 in FERA_12 order
+        l_shoulder = det_kp[0, :2]
+        r_shoulder = det_kp[1, :2]
+        det_shoulder_width = float(np.linalg.norm(l_shoulder - r_shoulder))
+
+        l_shoulder_obj = obj_kp[0, :2]
+        r_shoulder_obj = obj_kp[1, :2]
+        obj_shoulder_width = float(np.linalg.norm(l_shoulder_obj - r_shoulder_obj))
+
+        # Normalize shoulder widths
+        det_shoulder_width = max(det_shoulder_width, 1e-6)
+        obj_shoulder_width = max(obj_shoulder_width, 1e-6)
+
+        # Compute normalized embeddings
+        det_emb = det_kp[:, :2].flatten() / det_shoulder_width
+        obj_emb = obj_kp[:, :2].flatten() / obj_shoulder_width
 
         # Compute cosine similarity
-        emb1 = PoseEmbedder.compute_embedding(det_pose)
-        emb2 = PoseEmbedder.compute_embedding(obj_pose)
-        similarity = PoseEmbedder.cosine_similarity(emb1, emb2)
+        det_emb = det_emb.astype(np.float32)
+        obj_emb = obj_emb.astype(np.float32)
+
+        similarity = np.dot(det_emb, obj_emb) / (np.linalg.norm(det_emb) * np.linalg.norm(obj_emb) + 1e-6)
 
         # Convert similarity to distance (higher similarity = lower distance)
         # Range: [-1, 1] -> [0, 2] -> distance
-        return 1.0 - similarity
+        return 1.0 - float(similarity)
 
     except Exception:
         return float('inf')

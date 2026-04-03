@@ -454,7 +454,7 @@ def process_live(
         confidence_threshold: Minimum confidence for pose detection
         device: Device for pose estimation (cpu/cuda/mps)
         target_fps: Target FPS for capture
-        light_mode: Enable light mode for M1 Air (frame skipping)
+        light_mode: Enable light mode for M1 Air (lightweight RTMPose + frame skipping)
     """
     if not LIVE_IMPORTS_OK:
         logger.error("Live mode requires additional packages: pip install opencv-python")
@@ -469,10 +469,13 @@ def process_live(
     # Frame skip interval for light mode
     skip_interval = 2 if light_mode else 1
 
-    # Initialize pipelines
+    # Initialize pipelines with light mode settings
     logger.info("Initializing live pipeline...")
+    logger.info(f"Light mode: {light_mode}")
+
     perception_pipeline = PerceptionPipeline(
         conf_threshold=confidence_threshold,
+        light_mode=light_mode,
     )
 
     feature_extractor = FeatureExtractor(
