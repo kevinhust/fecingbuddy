@@ -22,7 +22,7 @@ Initial Alert Library (10 alerts):
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Dict, Callable
+from typing import List, Optional, Dict, Callable, TYPE_CHECKING
 from enum import Enum
 import numpy as np
 
@@ -39,8 +39,12 @@ from src.coaching.coaching_metrics import (
     DISTANCE_TOO_FAR,
     PREDICTABILITY_HIGH,
 )
-from src.recognition.action_classifier import ActionClassifier, ActionType, ActionResult
 from src.ui.alert_renderer import CoachingAlert
+
+# Lazy import to avoid circular dependency
+# action_classifier imports from coaching_metrics, which causes a circular import
+if TYPE_CHECKING:
+    from src.recognition.action_classifier import ActionClassifier, ActionType, ActionResult
 
 
 # =============================================================================
@@ -106,12 +110,14 @@ class CoachingEngine:
 
     def __init__(self):
         """Initialize coaching engine with alert rules."""
+        from src.recognition.action_classifier import ActionClassifier  # Lazy import
+
         self._metrics = CoachingMetrics(history_size=5)
         self._action_classifier = ActionClassifier(history_size=10)
         self._last_alert_frames: Dict[str, int] = {}
         self._frame_count = 0
         self._cooldown_frames = 30  # Default cooldown
-        self._last_action_result: Optional[ActionResult] = None
+        self._last_action_result: Optional["ActionResult"] = None
 
         # Initialize alert rules
         self._rules = self._build_alert_rules()

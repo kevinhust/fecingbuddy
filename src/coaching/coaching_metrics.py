@@ -62,7 +62,7 @@ class FencingMetrics:
     torso_lean_angle: float = 0.0
 
     # Torso orientation (indices 41-42)
-    torso_forward lean: float = 0.0
+    torso_forward_lean: float = 0.0
     torso_lateral_tilt: float = 0.0
 
     # CoM metrics (indices 97-98)
